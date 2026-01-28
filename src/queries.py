@@ -1,11 +1,7 @@
 import boto3
 import re
-from datetime import datetime, date
 
 s3 = boto3.client('s3')
-
-OUTPUT_PATH = "./out/example.txt"
-import json
 
 def query_bucket_contents(bucket: str, prefix: str, regex: str):
     paginator = s3.get_paginator("list_objects_v2")

@@ -3,16 +3,6 @@ import os
 import queries as q
 from dotenv import load_dotenv
 
-
-# IDEA: Specify a "folder path" and we batch download from it
-TEST_BUCKET = 'vpc-flow-logs-us-east-1-356070494385'
-TEST_KEY = 'AWSLogs/356070494385/vpcflowlogs/us-east-1/2024/10/'
-TEST_REGEX = r"a^"
-
-OUTPUT_PATH = "./out"
-
-LAST_WEEK = "s3/356070494385/356070494385-us-east-1-logs/"
-
 # Get a sorted list of files to download
 def get_all_recent_files(bucket: str, prefix: str, regex: str):
     # Send the query
@@ -24,10 +14,6 @@ def get_all_recent_files(bucket: str, prefix: str, regex: str):
         result for result in results 
         if result.get("LastModified").date() == target_date
     ]
-    
-    # Log the output to a txt file
-    with open(f"{OUTPUT_PATH}/example.txt", 'w') as f:
-        json.dump(most_recent_files, f, indent=2, default=str)
 
     print(f"Found {len(most_recent_files)} recent files from {target_date}")
     return most_recent_files
@@ -39,7 +25,7 @@ def download_file_list(bucket: str, file_list: list, output_path: str):
         print("Cancelling download...")
         return 
 
-    for i, file in enumerate(file_list):
+    for file in file_list:
         key = file.get("Key", "")
         if not key:
             continue
@@ -48,13 +34,22 @@ def download_file_list(bucket: str, file_list: list, output_path: str):
         destination_filepath = os.path.join(output_path, og_filepath)
         q.download_file(bucket, key, destination_filepath)
 
-def batch_download():
-    file_list = get_all_recent_files(TEST_BUCKET, TEST_KEY, TEST_REGEX)
-    download_file_list(TEST_BUCKET, file_list, OUTPUT_PATH)
+def batch_download(env_config: dict):
+    file_list = get_all_recent_files(env_config["bucket"], env_config["key_prefix"], env_config["exclude_regex"])
+    
+    # Log the output to a txt file
+    with open(f"{env_config['output_path']}/raw.txt", 'w') as f:
+        json.dump(file_list, f, indent=2, default=str)
+    
+    download_file_list(env_config["bucket"], file_list, env_config["output_path"])
 
 def main():
     load_dotenv()
-    batch_download()
+    config_path = os.getenv("env_config_path")
+    with open(config_path, "r") as f:
+        env_config = json.load(f)
+    
+    batch_download(env_config)
 
 if __name__=="__main__":
     main()
