@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+
 import json
 import os
+import sys
 import queries as q
 from dotenv import load_dotenv
 
@@ -45,9 +48,14 @@ def batch_download(env_config: dict):
 
 def main():
     load_dotenv()
-    config_path = os.getenv("env_config_path")
-    with open(config_path, "r") as f:
-        env_config = json.load(f)
+
+    try: 
+        config_path = os.getenv("env_config_path")
+        with open(config_path, "r") as f:
+            env_config = json.load(f)
+    except: 
+        print("Failed to load config file")
+        sys.exit(0)
     
     batch_download(env_config)
 
