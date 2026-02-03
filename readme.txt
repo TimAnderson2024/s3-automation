@@ -5,7 +5,7 @@ Python script that utilizes boto3 to batch download S3 objects
 ## Setup
 Download pip requirements: 
 python -m venv venv
-source cenv/scripts/activate
+source venv/scripts/activate
 pip install -r requirements.txt
 
 Fill in config.json:
@@ -19,4 +19,5 @@ OR
 Add config in terminal: export env_config_path="<your-config.json>"
 
 ## Usage
+aws sso login --profile <profile>
 src/batch_download.py

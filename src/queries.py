@@ -26,4 +26,9 @@ def query_bucket_contents(bucket: str, prefix: str, regex: str):
     return results
 
 def download_file(bucket: str, key: str, filename: str):
-    s3.download_file(bucket, key, filename)
+    print(f"Downloading {filename}...")
+    try:
+        s3.download_file(bucket, key, filename)
+        print(f"\tSuccessfully downloaded")
+    except:
+        print(f"\tFailed to download, skipping...")

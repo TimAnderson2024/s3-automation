@@ -1,6 +1,6 @@
 {
     "bucket": "vpc-flow-logs-us-east-1-356070494385",
-    "key_prefix": "AWSLogs/356070494385/vpcflowlogs/us-east-1/2024/10/",
+    "key_prefix": "AWSLogs/356070494385/vpcflowlogs/us-east-1/2024/",
     "exclude_regex": "'a^'",
     "output_path": "./out/downloads"
 }

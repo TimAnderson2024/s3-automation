@@ -24,7 +24,7 @@ def get_all_recent_files(bucket: str, prefix: str, regex: str):
 def download_file_list(bucket: str, file_list: list, output_path: str):
     confirm_download = input(f"Are you sure you want to download {len(file_list)} files to {output_path}? Enter YES to confirm:")
     
-    if confirm_download != "YES" and confirm_download != "yes":
+    if confirm_download not in ("YES",  "yes", "y", "ye"):
         print("Cancelling download...")
         return 
 
@@ -32,17 +32,20 @@ def download_file_list(bucket: str, file_list: list, output_path: str):
         key = file.get("Key", "")
         if not key:
             continue
+        
+        if key.endswith("/"):
+            print(f"Skipping folder key: {key}")
+            continue
 
         og_filepath = os.path.basename(key)
+        if not og_filepath:
+            print(f"Skipping key with empty basename: {key}")
         destination_filepath = os.path.join(output_path, og_filepath)
+        os.makedirs(os.path.dirname(destination_filepath), exist_ok=True)
         q.download_file(bucket, key, destination_filepath)
 
 def batch_download(env_config: dict):
     file_list = get_all_recent_files(env_config["bucket"], env_config["key_prefix"], env_config["exclude_regex"])
-    
-    # Log the output to a txt file
-    with open(f"{env_config['output_path']}/raw.txt", 'w') as f:
-        json.dump(file_list, f, indent=2, default=str)
     
     download_file_list(env_config["bucket"], file_list, env_config["output_path"])
 
@@ -51,6 +54,7 @@ def main():
 
     try: 
         config_path = os.getenv("env_config_path")
+        print(config_path)
         with open(config_path, "r") as f:
             env_config = json.load(f)
     except: 
