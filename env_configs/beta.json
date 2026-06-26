@@ -1,0 +1,5 @@
+{
+    "account": "beta",
+    "bucket": "ulp-daily-monitoring-central-us-east-2",
+    "exclude_regex": "'a^'"
+}

@@ -3,23 +3,54 @@
 import json
 import os
 import sys
-import queries as q
+import re
+import boto3
+
 from dotenv import load_dotenv
 
-# Get a sorted list of files to download
-def get_all_recent_files(bucket: str, prefix: str, regex: str):
-    # Send the query
-    results = q.query_bucket_contents(bucket, prefix, regex)
+s3 = boto3.client('s3')
+    
 
-    # Filter on the most recent results date
+def query_bucket_contents(bucket: str):
+    paginator = s3.get_paginator("list_objects_v2")
+    results = []
+    
+    for page in paginator.paginate( 
+        Bucket=bucket,
+    ):
+        results.extend(page.get("Contents", []))
+        print(f"Fetched {len(results)} total objects")
+
+    return results
+
+
+def get_nessus_scans(bucket: str, exclude_regex: str):
+    results = query_bucket_contents(bucket)
+
+    results.sort(key=lambda o: o["LastModified"], reverse=True)
+    
+    # Filter on the most recent results date and regex
     target_date = results[0].get("LastModified").date()
-    most_recent_files = [
-        result for result in results 
-        if result.get("LastModified").date() == target_date
-    ]
+    pattern = re.compile(exclude_regex, re.IGNORECASE)
 
-    print(f"Found {len(most_recent_files)} recent files from {target_date}")
-    return most_recent_files
+    filtered_files = [
+        result for result in results 
+        if result.get("LastModified").date() == target_date and 
+        not pattern.search(result.get("Key", ""))
+    ]
+    print(f"{len(filtered_files)} results remaining after filtering")
+    
+    return filtered_files
+
+
+def download_file(bucket: str, key: str, filename: str):
+    print(f"Downloading {filename}...")
+    try:
+        s3.download_file(bucket, key, filename)
+        print(f"\tSuccessfully downloaded")
+    except:
+        print(f"\tFailed to download, skipping...")
+
 
 def download_file_list(bucket: str, file_list: list, output_path: str):
     confirm_download = input(f"Are you sure you want to download {len(file_list)} files to {output_path}? Enter YES to confirm:")
@@ -40,12 +71,13 @@ def download_file_list(bucket: str, file_list: list, output_path: str):
         og_filepath = os.path.basename(key)
         if not og_filepath:
             print(f"Skipping key with empty basename: {key}")
+            continue    
         destination_filepath = os.path.join(output_path, og_filepath)
         os.makedirs(os.path.dirname(destination_filepath), exist_ok=True)
-        q.download_file(bucket, key, destination_filepath)
+        download_file(bucket, key, destination_filepath)
 
 def batch_download(env_config: dict):
-    file_list = get_all_recent_files(env_config["bucket"], env_config["key_prefix"], env_config["exclude_regex"])
+    file_list = get_nessus_scans(env_config["bucket"], env_config["exclude_regex"])
     
     download_file_list(env_config["bucket"], file_list, env_config["output_path"])
 
